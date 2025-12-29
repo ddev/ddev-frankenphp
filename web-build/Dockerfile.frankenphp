@@ -29,7 +29,7 @@ RUN if [ -n "${FRANKENPHP_CUSTOM_EXTENSIONS}" ]; then \
 
 RUN <<EOF
 set -eu -o pipefail
-chmod -fR ugo+w /usr/sbin /usr/bin /usr/local/etc/php
+chmod -fR ugo+w /usr/sbin /usr/bin /usr/local/bin /usr/local/etc/php
 
 cp /etc/php/${DDEV_PHP_VERSION}/fpm/php.ini /usr/local/etc/php/php.ini
 
