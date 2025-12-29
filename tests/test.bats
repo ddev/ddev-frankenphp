@@ -58,6 +58,9 @@ health_checks() {
   assert_success
   assert_output --partial "date.timezone => Europe/London"
 
+  run ddev php -r 'assert(false);'
+  assert_failure
+
   run curl -sfI http://${PROJNAME}.ddev.site
   assert_success
   assert_output --partial "HTTP/1.1 200"

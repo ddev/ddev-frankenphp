@@ -32,6 +32,7 @@ set -eu -o pipefail
 chmod -fR ugo+w /usr/sbin /usr/bin /usr/local/bin /usr/local/etc/php
 
 cp /etc/php/${DDEV_PHP_VERSION}/fpm/php.ini /usr/local/etc/php/php.ini
+cp /etc/php/${DDEV_PHP_VERSION}/mods-available/assert.ini /usr/local/etc/php/conf.d/assert.ini
 
 rm -f /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini /usr/local/etc/php/conf.d/docker-php-ext-xhprof.ini
 
