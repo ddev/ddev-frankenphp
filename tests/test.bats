@@ -41,7 +41,7 @@ setup() {
 
   export FRANKENPHP_PHP_VERSION=8.4
   export FRANKENPHP_WORKER=false
-  export FRANKENPHP_CUSTOM_EXTENSIONS=""
+  export FRANKENPHP_CUSTOM_EXTENSION=false
 }
 
 health_checks() {
@@ -105,17 +105,14 @@ health_checks() {
 
   run ddev php -m
   assert_success
-  if [[ "${FRANKENPHP_CUSTOM_EXTENSIONS}" == "" ]]; then
-    assert_output --partial "gd"
-    assert_output --partial "pdo_mysql"
-    assert_output --partial "pdo_pgsql"
-    assert_output --partial "zip"
+  assert_output --partial "pdo_mysql"
+  assert_output --partial "pdo_pgsql"
+  assert_output --partial "zip"
+
+  if [[ "${FRANKENPHP_CUSTOM_EXTENSION}" == "true" ]]; then
+    assert_output --partial "example_pie_extension"
   else
-    refute_output --partial "gd"
-    refute_output --partial "pdo_mysql"
-    refute_output --partial "pdo_pgsql"
-    refute_output --partial "zip"
-    assert_output --partial "memcached"
+    refute_output --partial "example_pie_extension"
   fi
 
   if [[ "${FRANKENPHP_PHP_VERSION}" != "8.5" ]]; then
@@ -256,14 +253,13 @@ teardown() {
   set -eu -o pipefail
 
   export FRANKENPHP_PHP_VERSION=8.4
-  export FRANKENPHP_CUSTOM_EXTENSIONS="memcached xdebug xhprof"
+  export FRANKENPHP_CUSTOM_EXTENSION=true
 
   run ddev config --docroot=public
   assert_success
 
-  run ddev dotenv set .ddev/.env.web --frankenphp-default-extensions="" --frankenphp-custom-extensions="${FRANKENPHP_CUSTOM_EXTENSIONS}"
-  assert_success
-  assert_file_exist .ddev/.env.web
+  cp "${DIR}"/tests/testdata/.ddev/web-build/Dockerfile.frankenphp_extra .ddev/web-build/Dockerfile.frankenphp_extra
+  assert_file_exist .ddev/web-build/Dockerfile.frankenphp_extra
 
   run ddev config --php-version=${FRANKENPHP_PHP_VERSION}
   assert_success

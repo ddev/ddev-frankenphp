@@ -3,13 +3,22 @@ name: frankenphp
 project_files:
   - config.frankenphp.yaml
   - docker-compose.frankenphp.yaml
-  - web-build/prepend.Dockerfile.frankenphp
+  - web-build/Caddyfile.frankenphp
   - web-build/Dockerfile.frankenphp
+  - web-build/pre.Dockerfile.frankenphp
 
 pre_install_actions:
   - |
     #ddev-description:Removing old files
-    for file in "${DDEV_APPROOT}/.ddev/commands/host/xdebug" "${DDEV_APPROOT}/.ddev/php/docker-php-ext-xdebug.ini" "${DDEV_APPROOT}/.ddev/frankenphp/Caddyfile" "${DDEV_APPROOT}/.ddev/commands/frankenphp/php" "${DDEV_APPROOT}/.ddev/frankenphp/Dockerfile"; do
+    files=(
+      "${DDEV_APPROOT}/.ddev/commands/host/xdebug"
+      "${DDEV_APPROOT}/.ddev/php/docker-php-ext-xdebug.ini"
+      "${DDEV_APPROOT}/.ddev/frankenphp/Caddyfile"
+      "${DDEV_APPROOT}/.ddev/commands/frankenphp/php"
+      "${DDEV_APPROOT}/.ddev/frankenphp/Dockerfile"
+      "${DDEV_APPROOT}/.ddev/web-build/prepend.Dockerfile.frankenphp"
+    )
+    for file in "${files[@]}"; do
       if [ -f "${file}" ]; then
         if grep -q '#ddev-generated' "${file}"; then
           rm -f "${file}"
@@ -19,13 +28,24 @@ pre_install_actions:
         fi
       fi
     done
-
-post_install_actions:
   - |
-    #ddev-description:Detecting Debian codename for FrankenPHP image build
-    debian_codename=$(docker run --rm "$(ddev version -j 2>/dev/null | docker run --rm -i ddev/ddev-utilities jq -r .raw.web 2>/dev/null)" bash -c 'source /etc/os-release && echo $VERSION_CODENAME' 2>/dev/null)
-    if [ "${debian_codename}" != "" ]; then
-      ddev dotenv set .ddev/.env.web --frankenphp-debian-codename="${debian_codename}"
+    #ddev-description:Checking for old configuration in .ddev/.env.web
+    if grep -q 'FRANKENPHP_DEBIAN_CODENAME=' "${DDEV_APPROOT}/.ddev/.env.web" 2>/dev/null; then
+      echo "You have FRANKENPHP_DEBIAN_CODENAME set in your .ddev/.env.web which is no longer needed."
+      echo "Remove it from '${DDEV_APPROOT}/.ddev/.env.web' or delete the file and try again."
+      exit 2
+    fi
+    if grep -q 'FRANKENPHP_DEFAULT_EXTENSIONS=' "${DDEV_APPROOT}/.ddev/.env.web" 2>/dev/null; then
+      echo "You have FRANKENPHP_DEFAULT_EXTENSIONS set in your .ddev/.env.web which is no longer needed."
+      echo "Remove it from '${DDEV_APPROOT}/.ddev/.env.web' or delete the file and try again."
+      exit 2
+    fi
+    if grep -q 'FRANKENPHP_CUSTOM_EXTENSIONS=' "${DDEV_APPROOT}/.ddev/.env.web" 2>/dev/null; then
+      echo "You have FRANKENPHP_CUSTOM_EXTENSIONS set in your .ddev/.env.web which is no longer needed."
+      echo "Remove it from '${DDEV_APPROOT}/.ddev/.env.web' or delete the file and try again."
+      echo "Extra PHP extensions should now be installed via webimage_extra_packages, see https://github.com/ddev/ddev-frankenphp"
+      echo "For example, to install the grpc extension, add 'php-zts-grpc' to webimage_extra_packages in your .ddev/config.yaml"
+      exit 2
     fi
 
 ddev_version_constraint: '>= v1.24.10'

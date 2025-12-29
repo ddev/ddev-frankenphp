@@ -13,18 +13,6 @@ See the blog [Using FrankenPHP with DDEV](https://ddev.com/blog/using-frankenphp
 
 This add-on integrates FrankenPHP into your [DDEV](https://ddev.com/) project.
 
-Difference from the [official quckstart](https://ddev.readthedocs.io/en/stable/users/quickstart/#generic-frankenphp):
-
-| Feature | This Add-on | Official Quickstart |
-| ------- | ----------- | ------------------- |
-| **PHP Versions** | PHP 8.2, 8.3, 8.4, 8.5 | PHP 8.4 only |
-| **PHP Extensions** | Builds on demand (slower, flexible) | Prebuilt (faster, limited) |
-| **Configuration** | Supports custom FrankenPHP options | No custom options support |
-| **Worker Mode** | ✓ Supported | ✗ Not supported |
-| **Developer Tools** | `ddev xdebug`, `ddev xhprof`, `ddev xhgui` | ✗ Not available |
-
-Note: building extensions slows down the first `ddev start`.
-
 ## Installation
 
 ```bash
@@ -34,42 +22,38 @@ ddev restart
 
 After installation, make sure to commit the `.ddev` directory to version control.
 
-### Debian Codename Detection
-
-If you have switched to DDEV HEAD (upcoming v1.25.0+), repeat the installation to get the updated configuration in the `.ddev/.env.web` file.
-
 ## Usage
 
-| Command | Description |
-| ------- | ----------- |
-| `ddev describe` | View project status |
-| `ddev logs -f` | View FrankenPHP logs |
+| Command         | Description          |
+|-----------------|----------------------|
+| `ddev describe` | View project status  |
+| `ddev logs -f`  | View FrankenPHP logs |
 
 ## Advanced Customization
 
-To add PHP extensions (see supported extensions [here](https://github.com/mlocati/docker-php-extension-installer?tab=readme-ov-file#supported-php-extensions)):
+Install pre-packaged extensions using the `php-zts-` prefix (see supported extensions [here](https://pkg.henderkes.com/)):
 
 ```bash
-ddev dotenv set .ddev/.env.web --frankenphp-custom-extensions="psr solr"
-ddev stop && ddev debug rebuild && ddev start
+# install sqlsrv and xsl extensions
+ddev config --webimage-extra-packages="php-zts-sqlsrv,php-zts-xsl"
+ddev restart
 ```
 
-Make sure to commit the `.ddev/.env.web` file to version control.
+For extensions not available as pre-packaged use [PHP/PIE](https://github.com/php/pie), create a file [`.ddev/web-build/Dockerfile.frankenphp_extra`](./tests/testdata/.ddev/web-build/Dockerfile.frankenphp_extra) with the following content:
+
+```bash
+RUN (apt-get update || true) && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confold" autoconf build-essential pie-zts && \
+    pie-zts install asgrim/example-pie-extension
+```
+
+And run `ddev restart`.
+
+Make sure to commit the `.ddev/web-build/Dockerfile.frankenphp_extra` file to version control.
 
 ---
 
-If you want to override the default set of extensions, for example, to remove some extensions to make the first build faster:
-
-```bash
-ddev dotenv set .ddev/.env.web --frankenphp-default-extensions="gd pdo_mysql xdebug xhprof"
-ddev stop && ddev debug rebuild && ddev start
-```
-
-Make sure to commit the `.ddev/.env.web` file to version control.
-
----
-
-To modify the default [Caddyfile](https://github.com/php/frankenphp/blob/main/caddy/frankenphp/Caddyfile) configuration, create a file [`.ddev/docker-compose.frankenphp_extra.yaml`](./tests/testdata/docker-compose.frankenphp_extra.yaml) with the following content:
+To modify the default [Caddyfile](https://github.com/php/frankenphp/blob/main/caddy/frankenphp/Caddyfile) configuration, create a file [`.ddev/docker-compose.frankenphp_extra.yaml`](./tests/testdata/.ddev/docker-compose.frankenphp_extra.yaml) with the following content:
 
 ```yaml
 # See all configurable variables in
@@ -92,19 +76,14 @@ services:
         # }
 ```
 
----
+And run `ddev restart`.
 
-All customization options (use with caution):
-
-| Variable | Flag | Default |
-| -------- | ---- | ------- |
-| `FRANKENPHP_DEBIAN_CODENAME` | `--frankenphp-debian-codename` | `bookworm` |
-| `FRANKENPHP_DEFAULT_EXTENSIONS` | `--frankenphp-default-extensions` | `gd pdo_mysql pdo_pgsql xdebug xhprof zip` |
-| `FRANKENPHP_CUSTOM_EXTENSIONS` | `--frankenphp-custom-extensions` | (not set) |
+Make sure to commit the `.ddev/docker-compose.frankenphp_extra.yaml` file to version control.
 
 ## Resources:
 
 - [FrankenPHP Documentation](https://frankenphp.dev/docs/)
+- [FrankenPHP Static PHP Package Repository](https://debs.henderkes.com/)
 - [Using FrankenPHP with DDEV](https://ddev.com/blog/using-frankenphp-with-ddev/)
 - [DDEV FrankenPHP Benchmark](https://github.com/stasadev/ddev-frankenphp-benchmark)
 

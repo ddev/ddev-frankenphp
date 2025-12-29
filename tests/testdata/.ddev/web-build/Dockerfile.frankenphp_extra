@@ -1,0 +1,4 @@
+RUN (apt-get update || true) && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confold" autoconf build-essential pie-zts && \
+    ([ -d /usr/lib/php-zts/build/build/ ] && cp -r /usr/lib/php-zts/build/build/* /usr/lib/php-zts/build/ || true) && \
+    pie-zts install asgrim/example-pie-extension

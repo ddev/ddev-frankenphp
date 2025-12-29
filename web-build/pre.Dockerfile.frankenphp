@@ -1,0 +1,3 @@
+#ddev-generated
+# Add PHP ZTS repository https://debs.henderkes.com/
+RUN curl -fsSL https://files.henderkes.com/install.sh | sh -s "${DDEV_PHP_VERSION}"

@@ -1,77 +1,72 @@
 #ddev-generated
-COPY --from=frankenphp /usr /usr
-COPY --from=frankenphp /etc/frankenphp /etc/frankenphp
-RUN ldconfig
-ARG PHP_INI_DIR=/usr/local/etc/php
-ARG PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
-ARG PHP_CPPFLAGS="-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
 
-# Don't run cleanup in install-php-extensions, because it removes build tools,
-# and running install-php-extensions second time later is going to fail because of that.
-# So we just remove the cleanup step from the script.
-RUN sed -i '/^cleanup$/d' /usr/local/bin/install-php-extensions
-
-ARG FRANKENPHP_DEFAULT_EXTENSIONS=""
-
-ARG FRANKENPHP_CUSTOM_EXTENSIONS=""
-
-# Install default extensions if not empty
-RUN if [ -n "${FRANKENPHP_DEFAULT_EXTENSIONS}" ]; then \
-        for ext in ${FRANKENPHP_DEFAULT_EXTENSIONS}; do \
-            install-php-extensions "$ext" || true; \
-        done; \
-    fi
-
-# Install user-defined extensions if any
-RUN if [ -n "${FRANKENPHP_CUSTOM_EXTENSIONS}" ]; then \
-        install-php-extensions ${FRANKENPHP_CUSTOM_EXTENSIONS}; \
-    fi
+ADD ./Caddyfile.frankenphp /etc/frankenphp/Caddyfile
 
 RUN <<EOF
 set -eu -o pipefail
-chmod -fR ugo+w /usr/sbin /usr/bin /usr/local/bin /usr/local/etc/php
 
-cp /etc/php/${DDEV_PHP_VERSION}/fpm/php.ini /usr/local/etc/php/php.ini
-cp /etc/php/${DDEV_PHP_VERSION}/mods-available/assert.ini /usr/local/etc/php/conf.d/assert.ini
+# Copy standard PHP configuration to php-zts location
+cp /etc/php/${DDEV_PHP_VERSION}/fpm/php.ini /etc/php-zts/php.ini
+update-alternatives --install /usr/bin/php php /usr/bin/php-zts 50
 
-rm -f /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini /usr/local/etc/php/conf.d/docker-php-ext-xhprof.ini
+# Patch start.sh to use php-zts paths
+sed -i 's|/usr/bin/php${DDEV_PHP_VERSION}|/usr/bin/php-zts|g' /start.sh
+sed -i 's|/etc/php/${DDEV_PHP_VERSION}/fpm/conf.d/|/etc/php-zts/conf.d/|g' /start.sh
 
-cat <<FILE_EOF > /usr/local/bin/enable_xdebug
-#!/usr/bin/env bash
-cp /etc/php/\${DDEV_PHP_VERSION}/mods-available/xdebug.ini /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
-supervisorctl restart webextradaemons:frankenphp >/dev/null || true
-echo "Enabled xdebug"
-FILE_EOF
+# Patch php-common tools (phpenmod/phpdismod) to work with php-zts paths
+for tool in /usr/lib/php/php-helper /usr/sbin/phpenmod /usr/sbin/phpdismod; do
+    sed -i 's|/etc/php/${version}/${sapi}/conf.d|/etc/php-zts/conf.d|g' "$tool"
+    sed -i 's|/etc/php/${version}/mods-available|/etc/php-zts/mods-available|g' "$tool"
+done
 
-cat <<FILE_EOF > /usr/local/bin/disable_xdebug
-#!/usr/bin/env bash
-rm -f /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
-supervisorctl restart webextradaemons:frankenphp >/dev/null || true
-echo "Disabled xdebug"
-FILE_EOF
+# php-zts packages don't provide mods-available structure like standard PHP
+# Migrate numbered conf.d files to mods-available with priority preserved
+mkdir -p /etc/php-zts/mods-available
+for file in /etc/php-zts/conf.d/[0-9]*-*.ini; do
+    [ -f "$file" ] || continue
+    filename=$(basename "$file")
+    priority=$(echo "$filename" | sed 's/^\([0-9]\+\)-.*/\1/')
+    new_name=$(echo "$filename" | sed 's/^[0-9]\+-//')
+    mod_name=$(echo "$new_name" | sed 's/\.ini$//')
+    echo "; priority=${priority}" > "/etc/php-zts/mods-available/${new_name}"
+    cat "$file" >> "/etc/php-zts/mods-available/${new_name}"
+    rm -f "$file"
+    phpenmod "${mod_name}"
+done
 
-cat <<FILE_EOF > /usr/local/bin/enable_xhprof
-#!/usr/bin/env bash
-rm -f /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
-cp /etc/php/\${DDEV_PHP_VERSION}/mods-available/xhprof.ini /usr/local/etc/php/conf.d/docker-php-ext-xhprof.ini
-supervisorctl restart webextradaemons:frankenphp >/dev/null || true
-echo "Enabled xhprof with xhprof_mode=\${DDEV_XHPROF_MODE}"
-case "\${DDEV_XHPROF_MODE}" in
-  xhgui)
-    echo "Use 'ddev xhgui' to launch browser for xhprof results."
-    ;;
-  *)
-    echo "After each web request or CLI process you can see all runs, most recent first, at
-\${DDEV_PRIMARY_URL}/xhprof"
-    ;;
-esac
-FILE_EOF
+# Copy DDEV-specific module configs from standard PHP to php-zts
+# Preserve priority from numbered files if they were migrated above
+for mod_file in assert.ini blackfire.ini xdebug.ini xhprof.ini; do
+    source_file="/etc/php/${DDEV_PHP_VERSION}/mods-available/${mod_file}"
+    dest_file="/etc/php-zts/mods-available/${mod_file}"
+    [ -f "$source_file" ] || continue
+    priority_line=""
+    if [ -f "$dest_file" ]; then
+        priority_line=$(head -n 1 "$dest_file" | grep "^; priority=" || true)
+    fi
+    cp "$source_file" "$dest_file"
+    if [ -n "$priority_line" ]; then
+        sed -i "1i${priority_line}" "$dest_file"
+    fi
+done
 
-cat <<FILE_EOF > /usr/local/bin/disable_xhprof
-#!/usr/bin/env bash
-rm -f /usr/local/etc/php/conf.d/docker-php-ext-xhprof.ini
-supervisorctl restart webextradaemons:frankenphp >/dev/null || true
-echo "Disabled xhprof"
-FILE_EOF
+# Disable xdebug and xhprof by default
+phpdismod xdebug xhprof
 
+# Modify xdebug/xhprof enable/disable scripts to restart via supervisorctl
+# This is needed only for DDEV versions prior to v1.25.0
+scripts=(
+    /usr/local/bin/enable_xdebug
+    /usr/local/bin/disable_xdebug
+    /usr/local/bin/enable_xhprof
+    /usr/local/bin/disable_xhprof
+)
+for script_file in "${scripts[@]}"; do
+    if ! grep -q "supervisorctl restart 'webextradaemons:*'" "$script_file"; then
+        sed -i "s|killall -USR2 php-fpm|supervisorctl restart 'webextradaemons:*'|g" "$script_file"
+    fi
+done
+
+# Ensure write permissions for all users on php-zts directories
+chmod -fR ugo+w /etc/php-zts /var/lib/php-zts
 EOF

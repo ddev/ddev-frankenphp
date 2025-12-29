@@ -9,3 +9,27 @@ web_extra_exposed_ports:
     container_port: 80
     http_port: 80
     https_port: 443
+# See https://debs.henderkes.com/
+webimage_extra_packages:
+  - frankenphp
+  - php-zts-apcu
+  - php-zts-bcmath
+  - php-zts-bz2
+  - php-zts-cli
+  - php-zts-gd
+  - php-zts-imagick
+  - php-zts-intl
+  - php-zts-ldap
+  - php-zts-memcached
+  - php-zts-mysqli
+  - php-zts-pdo-mysql
+  - php-zts-pdo-pgsql
+  - php-zts-pdo-sqlite
+  - php-zts-pgsql
+  - php-zts-redis
+  - php-zts-soap
+  - php-zts-sqlite3
+  - php-zts-xdebug
+  - php-zts-xhprof
+  - php-zts-yaml
+  - php-zts-zip
