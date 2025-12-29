@@ -286,7 +286,7 @@ teardown() {
   run ddev config --docroot=public
   assert_success
 
-  run ddev config --host-http-port=8080 --host-https-port=8443
+  run ddev config --host-webserver-port=8080 --host-https-port=8443
   assert_success
 
   cp "${DIR}"/tests/testdata/.ddev/web-build/Dockerfile.frankenphp_extra .ddev/web-build/Dockerfile.frankenphp_extra
