@@ -37,7 +37,7 @@ jobs:
           "php84",
           "php85",
           "php84-worker",
-          "php84-docroot-and-extension",
+          "php84-docroot-extension-port",
         ]
       fail-fast: false
 

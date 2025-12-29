@@ -53,7 +53,7 @@ Make sure to commit the `.ddev/web-build/Dockerfile.frankenphp_extra` file to ve
 
 ---
 
-To modify the default [Caddyfile](./web-build/Caddyfile.frankenphp) configuration, create a file [`.ddev/docker-compose.frankenphp_extra.yaml`](./tests/testdata/.ddev/docker-compose.frankenphp_extra.yaml) with the following content:
+To modify the default [Caddyfile](./web-build/Caddyfile.frankenphp) configuration, either remove `#ddev-generated` line and edit it directly, or create a file [`.ddev/docker-compose.frankenphp_extra.yaml`](./tests/testdata/.ddev/docker-compose.frankenphp_extra.yaml) with the following content:
 
 ```yaml
 # See all configurable variables in

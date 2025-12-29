@@ -43,6 +43,7 @@ setup() {
   export FRANKENPHP_PHP_VERSION=8.4
   export FRANKENPHP_WORKER=false
   export FRANKENPHP_CUSTOM_EXTENSION=false
+  export FRANKENPHP_HOST_PORTS=false
 }
 
 health_checks() {
@@ -86,6 +87,33 @@ health_checks() {
   else
     refute_output --partial "x-request-count"
     refute_output --partial "x-worker-uptime"
+  fi
+
+  if [[ "${FRANKENPHP_HOST_PORTS}" == "true" ]]; then
+    run curl -sfI http://127.0.0.1:8080
+    assert_success
+    assert_output --partial "HTTP/1.1 200"
+    assert_output --regexp "Server: (Caddy|FrankenPHP)"
+
+    if [[ "${FRANKENPHP_WORKER}" == "true" ]]; then
+      assert_output --partial "X-Request-Count"
+      assert_output --partial "X-Worker-Uptime"
+    else
+      refute_output --partial "X-Request-Count"
+      refute_output --partial "X-Worker-Uptime"
+    fi
+
+    run curl -sfI https://127.0.0.1:8443
+    assert_success
+    assert_output --partial "HTTP/2 200"
+    assert_output --regexp "server: (Caddy|FrankenPHP)"
+    if [[ "${FRANKENPHP_WORKER}" == "true" ]]; then
+      assert_output --partial "x-request-count"
+      assert_output --partial "x-worker-uptime"
+    else
+      refute_output --partial "x-request-count"
+      refute_output --partial "x-worker-uptime"
+    fi
   fi
 
   run curl -sf http://${PROJNAME}.ddev.site
@@ -247,14 +275,18 @@ teardown() {
   health_checks
 }
 
-# bats test_tags=php84-docroot-and-extension
-@test "docroot=php84-docroot-and-extension" {
+# bats test_tags=php84-docroot-extension-port
+@test "docroot=php84-docroot-extension-port" {
   set -eu -o pipefail
 
   export FRANKENPHP_PHP_VERSION=8.4
   export FRANKENPHP_CUSTOM_EXTENSION=true
+  export FRANKENPHP_HOST_PORTS=true
 
   run ddev config --docroot=public
+  assert_success
+
+  run ddev config --host-http-port=8080 --host-https-port=8443
   assert_success
 
   cp "${DIR}"/tests/testdata/.ddev/web-build/Dockerfile.frankenphp_extra .ddev/web-build/Dockerfile.frankenphp_extra

@@ -1,5 +1,5 @@
 #ddev-generated
-# Copied from https://github.com/php/frankenphp/blob/main/caddy/frankenphp/Caddyfile
+# Adapted from https://github.com/php/frankenphp/blob/main/caddy/frankenphp/Caddyfile
 #
 # The Caddyfile is an easy way to configure FrankenPHP and the Caddy web server.
 #
@@ -8,6 +8,10 @@
 
 {
 	skip_install_trust
+
+	servers {
+		trusted_proxies static private_ranges
+	}
 
 	{$CADDY_GLOBAL_OPTIONS}
 
@@ -18,38 +22,34 @@
 
 {$CADDY_EXTRA_CONFIG}
 
-{$SERVER_NAME:localhost} {
-	#log {
-	#	# Redact the authorization query parameter that can be set by Mercure
-	#	format filter {
-	#		request>uri query {
-	#			replace authorization REDACTED
-	#		}
-	#	}
-	#}
-
-	root {$SERVER_ROOT:public/}
+(common_config) {
+	root {$DDEV_APPROOT}/{$DDEV_DOCROOT}
 	encode zstd br gzip
-
-	# Uncomment the following lines to enable Mercure and Vulcain modules
-	#mercure {
-	#	# Publisher JWT key
-	#	publisher_jwt {env.MERCURE_PUBLISHER_JWT_KEY} {env.MERCURE_PUBLISHER_JWT_ALG}
-	#	# Subscriber JWT key
-	#	subscriber_jwt {env.MERCURE_SUBSCRIBER_JWT_KEY} {env.MERCURE_SUBSCRIBER_JWT_ALG}
-	#	# Allow anonymous subscribers (double-check that it's what you want)
-	#	anonymous
-	#	# Enable the subscription API (double-check that it's what you want)
-	#	subscriptions
-	#	# Extra directives
-	#	{$MERCURE_EXTRA_DIRECTIVES}
-	#}
-	#vulcain
-
 	{$CADDY_SERVER_EXTRA_DIRECTIVES}
+}
+
+:80 {
+	import common_config
+
+	@secure header X-Forwarded-Proto https
+	php_server @secure {
+		env HTTPS on
+		env SERVER_PORT 443
+		env REQUEST_SCHEME https
+		root {$DDEV_APPROOT}/{$DDEV_DOCROOT}
+	}
 
 	php_server {
-		#worker /path/to/your/worker.php
+		root {$DDEV_APPROOT}/{$DDEV_DOCROOT}
+	}
+}
+
+:443 {
+	import common_config
+	tls /etc/ssl/certs/master.crt /etc/ssl/certs/master.key
+
+	php_server {
+		root {$DDEV_APPROOT}/{$DDEV_DOCROOT}
 	}
 }
 

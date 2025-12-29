@@ -2,5 +2,6 @@
 services:
   web:
     environment:
-      - SERVER_NAME=:80
       - SERVER_ROOT=${DDEV_DOCROOT:-.}
+    ports:
+      - "$DDEV_HOST_HTTPS_PORT:443"
