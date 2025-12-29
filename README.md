@@ -43,7 +43,7 @@ For extensions not available as pre-packaged use [PHP/PIE](https://github.com/ph
 
 ```bash
 RUN (apt-get update || true) && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confold" autoconf build-essential pie-zts && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confold" autoconf bison gcc libtool make pie-zts pkg-config re2c && \
     pie-zts install asgrim/example-pie-extension
 ```
 
