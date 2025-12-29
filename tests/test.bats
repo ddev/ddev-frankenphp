@@ -51,8 +51,8 @@ health_checks() {
 
   run ddev php --ini
   assert_success
-  assert_output --partial "/usr/local/etc/php/php.ini"
-  assert_output --partial "/etc/frankenphp/php.d"
+  assert_output --partial "/etc/php-zts/php.ini"
+  assert_output --partial "/etc/php-zts/conf.d/20-assert.ini"
 
   run ddev php -i
   assert_success
@@ -115,14 +115,12 @@ health_checks() {
     refute_output --partial "example_pie_extension"
   fi
 
-  if [[ "${FRANKENPHP_PHP_VERSION}" != "8.5" ]]; then
-    run ddev xdebug on
-    assert_success
+  run ddev xdebug on
+  assert_success
 
-    run ddev php -m
-    assert_success
-    assert_output --partial "xdebug"
-  fi
+  run ddev php -m
+  assert_success
+  assert_output --partial "xdebug"
 
   run ddev xhprof on
   assert_success
