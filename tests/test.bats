@@ -32,8 +32,9 @@ setup() {
   export DDEV_NO_INSTRUMENTATION=true
   ddev delete -Oy "${PROJNAME}" >/dev/null 2>&1 || true
   cd "${TESTDIR}"
-
   run ddev config --project-name="${PROJNAME}" --project-tld=ddev.site
+  assert_success
+  run ddev start -y
   assert_success
 
   cp "${DIR}"/tests/testdata/.ddev/php/php.ini .ddev/php/php.ini
