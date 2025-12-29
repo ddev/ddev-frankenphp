@@ -13,45 +13,18 @@ update-alternatives --install /usr/bin/php php /usr/bin/php-zts 50
 sed -i 's|/usr/bin/php${DDEV_PHP_VERSION}|/usr/bin/php-zts|g' /start.sh
 sed -i 's|/etc/php/${DDEV_PHP_VERSION}/fpm/conf.d/|/etc/php-zts/conf.d/|g' /start.sh
 
-# Patch php-common tools (phpenmod/phpdismod) to work with php-zts paths
-for tool in /usr/lib/php/php-helper /usr/sbin/phpenmod /usr/sbin/phpdismod; do
-    sed -i 's|/etc/php/${version}/${sapi}/conf.d|/etc/php-zts/conf.d|g' "$tool"
-    sed -i 's|/etc/php/${version}/mods-available|/etc/php-zts/mods-available|g' "$tool"
-done
+# Copy DDEV PHP module configurations to php-zts location
+cp /etc/php/${DDEV_PHP_VERSION}/mods-available/assert.ini /etc/php-zts/conf.d/20-assert.ini
+cp /etc/php/${DDEV_PHP_VERSION}/mods-available/blackfire.ini /etc/php-zts/conf.d/90-blackfire.ini
+cp /etc/php/${DDEV_PHP_VERSION}/mods-available/xdebug.ini /etc/php-zts/conf.d/15-xdebug.ini
+cp /etc/php/${DDEV_PHP_VERSION}/mods-available/xhprof.ini /etc/php-zts/conf.d/20-xhprof.ini
 
-# php-zts packages don't provide mods-available structure like standard PHP
-# Migrate numbered conf.d files to mods-available with priority preserved
-mkdir -p /etc/php-zts/mods-available
-for file in /etc/php-zts/conf.d/[0-9]*-*.ini; do
-    [ -f "$file" ] || continue
-    filename=$(basename "$file")
-    priority=$(echo "$filename" | sed 's/^\([0-9]\+\)-.*/\1/')
-    new_name=$(echo "$filename" | sed 's/^[0-9]\+-//')
-    mod_name=$(echo "$new_name" | sed 's/\.ini$//')
-    echo "; priority=${priority}" > "/etc/php-zts/mods-available/${new_name}"
-    cat "$file" >> "/etc/php-zts/mods-available/${new_name}"
-    rm -f "$file"
-    phpenmod "${mod_name}"
-done
+# Create symlinks for phpenmod and phpdismod to use php-zts versions
+ln -sf /usr/sbin/phpenmod-zts /usr/sbin/phpenmod
+ln -sf /usr/sbin/phpdismod-zts /usr/sbin/phpdismod
 
-# Copy DDEV-specific module configs from standard PHP to php-zts
-# Preserve priority from numbered files if they were migrated above
-for mod_file in assert.ini blackfire.ini xdebug.ini xhprof.ini; do
-    source_file="/etc/php/${DDEV_PHP_VERSION}/mods-available/${mod_file}"
-    dest_file="/etc/php-zts/mods-available/${mod_file}"
-    [ -f "$source_file" ] || continue
-    priority_line=""
-    if [ -f "$dest_file" ]; then
-        priority_line=$(head -n 1 "$dest_file" | grep "^; priority=" || true)
-    fi
-    cp "$source_file" "$dest_file"
-    if [ -n "$priority_line" ]; then
-        sed -i "1i${priority_line}" "$dest_file"
-    fi
-done
-
-# Disable xdebug and xhprof by default
-phpdismod xdebug xhprof
+# We don't want these modules enabled by default
+phpdismod assert blackfire xdebug xhprof
 
 # Modify xdebug/xhprof enable/disable scripts to restart via supervisorctl
 # This is needed only for DDEV versions prior to v1.25.0

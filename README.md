@@ -24,10 +24,11 @@ After installation, make sure to commit the `.ddev` directory to version control
 
 ## Usage
 
-| Command         | Description          |
-|-----------------|----------------------|
-| `ddev describe` | View project status  |
-| `ddev logs -f`  | View FrankenPHP logs |
+| Command                | Description                                           |
+|------------------------|-------------------------------------------------------|
+| `ddev describe`        | View project status                                   |
+| `ddev logs -f`         | View FrankenPHP logs                                  |
+| `ddev utility rebuild` | Get fresh FrankenPHP build inside the `web` container |
 
 ## Advanced Customization
 
