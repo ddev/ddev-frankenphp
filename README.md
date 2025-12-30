@@ -27,8 +27,10 @@ After installation, make sure to commit the `.ddev` directory to version control
 | Command                   | Description                        |
 |---------------------------|------------------------------------|
 | `ddev describe`           | View project status                |
-| `ddev logs -f`            | View FrankenPHP logs               |
+| `ddev php -v`             | Check installed PHP ZTS version    |
 | `ddev exec frankenphp -v` | Check installed FrankenPHP version |
+| `ddev php -m`             | View installed PHP extensions      |
+| `ddev logs -f`            | View FrankenPHP logs               |
 
 > [!TIP]
 > FrankenPHP is updated automatically when you update DDEV.
