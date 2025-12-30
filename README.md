@@ -45,8 +45,8 @@ After installation, make sure to commit the `.ddev` directory to version control
 Install pre-packaged extensions using the `php-zts-` prefix (see [supported extensions](https://pkg.henderkes.com/84/php-zts/packages?type=debian)):
 
 ```bash
-# install sqlsrv and xsl extensions
-ddev config --webimage-extra-packages="php-zts-sqlsrv,php-zts-xsl"
+# install mongodb and sqlsrv extensions
+ddev config --webimage-extra-packages="php-zts-mongodb,php-zts-sqlsrv"
 ddev restart
 ```
 

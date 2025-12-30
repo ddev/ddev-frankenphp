@@ -16,7 +16,11 @@ webimage_extra_packages:
   - php-zts-bcmath
   - php-zts-bz2
   - php-zts-cli
+  - php-zts-ffi
+  - php-zts-fileinfo
+  - php-zts-ftp
   - php-zts-gd
+  - php-zts-gettext
   - php-zts-imagick
   - php-zts-intl
   - php-zts-ldap
@@ -27,9 +31,14 @@ webimage_extra_packages:
   - php-zts-pdo-sqlite
   - php-zts-pgsql
   - php-zts-redis
+  - php-zts-shmop
   - php-zts-soap
   - php-zts-sqlite3
+  - php-zts-sysvmsg
+  - php-zts-sysvsem
+  - php-zts-sysvshm
   - php-zts-xdebug
   - php-zts-xhprof
+  - php-zts-xsl
   - php-zts-yaml
   - php-zts-zip
