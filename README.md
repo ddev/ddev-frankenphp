@@ -24,15 +24,18 @@ After installation, make sure to commit the `.ddev` directory to version control
 
 ## Usage
 
-| Command                | Description                                           |
-|------------------------|-------------------------------------------------------|
-| `ddev describe`        | View project status                                   |
-| `ddev logs -f`         | View FrankenPHP logs                                  |
-| `ddev utility rebuild` | Get fresh FrankenPHP build inside the `web` container |
+| Command                   | Description                        |
+|---------------------------|------------------------------------|
+| `ddev describe`           | View project status                |
+| `ddev logs -f`            | View FrankenPHP logs               |
+| `ddev exec frankenphp -v` | Check installed FrankenPHP version |
+
+> [!TIP]
+> FrankenPHP is rebuilt automatically when you update DDEV. To rebuild it manually, run `ddev utility rebuild`.
 
 ## Advanced Customization
 
-Install pre-packaged extensions using the `php-zts-` prefix (see supported extensions [here](https://pkg.henderkes.com/84/php-zts/packages?type=debian)):
+Install pre-packaged extensions using the `php-zts-` prefix (see supported extensions [here](https://pkg.henderkes.com/)):
 
 ```bash
 # install sqlsrv and xsl extensions
@@ -42,7 +45,10 @@ ddev restart
 
 For extensions not available as pre-packaged use [PHP/PIE](https://github.com/php/pie), create a file [`.ddev/web-build/Dockerfile.frankenphp_extra`](./tests/testdata/.ddev/web-build/Dockerfile.frankenphp_extra) with the following content:
 
+A list of extensions that support PIE can be found on https://packagist.org/extensions.
+
 ```bash
+# Replace asgrim/example-pie-extension with the desired extension
 RUN (apt-get update || true) && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confold" autoconf bison gcc libtool make pie-zts pkg-config re2c && \
     pie-zts install asgrim/example-pie-extension
