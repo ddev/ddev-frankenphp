@@ -1,4 +1,5 @@
 # Replace asgrim/example-pie-extension with the desired extension https://packagist.org/extensions
 RUN (apt-get update || true) && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confold" autoconf bison gcc libtool make pie-zts pkg-config re2c && \
-    pie-zts install asgrim/example-pie-extension
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confold" \
+        autoconf bison gcc libtool make pie-zts pkg-config re2c && \
+        pie-zts install asgrim/example-pie-extension

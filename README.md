@@ -47,12 +47,13 @@ ddev restart
 
 For extensions not available as pre-packaged, use [PHP/PIE](https://packagist.org/extensions), create a file [`.ddev/web-build/Dockerfile.frankenphp_extra`](./tests/testdata/.ddev/web-build/Dockerfile.frankenphp_extra) with the following content:
 
-```bash
+```dockerfile
 # .ddev/web-build/Dockerfile.frankenphp_extra
 # Replace asgrim/example-pie-extension with the desired extension https://packagist.org/extensions
 RUN (apt-get update || true) && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confold" autoconf bison gcc libtool make pie-zts pkg-config re2c && \
-    pie-zts install asgrim/example-pie-extension
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confold" \
+        autoconf bison gcc libtool make pie-zts pkg-config re2c && \
+        pie-zts install asgrim/example-pie-extension
 ```
 
 And run `ddev restart`.
