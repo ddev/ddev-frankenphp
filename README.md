@@ -31,11 +31,13 @@ After installation, make sure to commit the `.ddev` directory to version control
 | `ddev exec frankenphp -v` | Check installed FrankenPHP version |
 
 > [!TIP]
-> FrankenPHP is rebuilt automatically when you update DDEV. To rebuild it manually, run `ddev utility rebuild`.
+> FrankenPHP is updated automatically when you update DDEV.
+>
+> To update it manually, run `ddev utility rebuild`.
 
 ## Advanced Customization
 
-Install pre-packaged extensions using the `php-zts-` prefix (see supported extensions [here](https://pkg.henderkes.com/)):
+Install pre-packaged extensions using the `php-zts-` prefix (see [supported extensions](https://pkg.henderkes.com/84/php-zts/packages?type=debian)):
 
 ```bash
 # install sqlsrv and xsl extensions
@@ -43,12 +45,11 @@ ddev config --webimage-extra-packages="php-zts-sqlsrv,php-zts-xsl"
 ddev restart
 ```
 
-For extensions not available as pre-packaged use [PHP/PIE](https://github.com/php/pie), create a file [`.ddev/web-build/Dockerfile.frankenphp_extra`](./tests/testdata/.ddev/web-build/Dockerfile.frankenphp_extra) with the following content:
-
-A list of extensions that support PIE can be found on https://packagist.org/extensions.
+For extensions not available as pre-packaged, use [PHP/PIE](https://packagist.org/extensions), create a file [`.ddev/web-build/Dockerfile.frankenphp_extra`](./tests/testdata/.ddev/web-build/Dockerfile.frankenphp_extra) with the following content:
 
 ```bash
-# Replace asgrim/example-pie-extension with the desired extension
+# .ddev/web-build/Dockerfile.frankenphp_extra
+# Replace asgrim/example-pie-extension with the desired extension https://packagist.org/extensions
 RUN (apt-get update || true) && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confold" autoconf bison gcc libtool make pie-zts pkg-config re2c && \
     pie-zts install asgrim/example-pie-extension
@@ -60,9 +61,12 @@ Make sure to commit the `.ddev/web-build/Dockerfile.frankenphp_extra` file to ve
 
 ---
 
-To modify the default [Caddyfile](./web-build/Caddyfile.frankenphp) configuration, either remove `#ddev-generated` line and edit it directly, or create a file [`.ddev/docker-compose.frankenphp_extra.yaml`](./tests/testdata/.ddev/docker-compose.frankenphp_extra.yaml) with the following content:
+To change the default `Caddyfile` configuration, remove the `#ddev-generated` line from [`.ddev/web-build/Caddyfile.frankenphp`](./web-build/Caddyfile.frankenphp) and edit it.
+
+Alternatively, create a file [`.ddev/docker-compose.frankenphp_extra.yaml`](./tests/testdata/.ddev/docker-compose.frankenphp_extra.yaml) with the following content:
 
 ```yaml
+# .ddev/docker-compose.frankenphp_extra.yaml
 # See all configurable variables in
 # https://github.com/php/frankenphp/blob/main/caddy/frankenphp/Caddyfile
 services:
