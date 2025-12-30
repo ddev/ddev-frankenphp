@@ -32,7 +32,7 @@ After installation, make sure to commit the `.ddev` directory to version control
 
 ## Advanced Customization
 
-Install pre-packaged extensions using the `php-zts-` prefix (see supported extensions [here](https://pkg.henderkes.com/)):
+Install pre-packaged extensions using the `php-zts-` prefix (see supported extensions [here](https://pkg.henderkes.com/84/php-zts/packages?type=debian)):
 
 ```bash
 # install sqlsrv and xsl extensions

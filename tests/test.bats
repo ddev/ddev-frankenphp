@@ -157,6 +157,13 @@ health_checks() {
   run ddev php -m
   assert_success
   assert_output --partial "xhprof"
+
+  run ddev blackfire on
+  assert_success
+
+  run ddev php -m
+  assert_success
+  assert_output --partial "blackfire"
 }
 
 teardown() {
