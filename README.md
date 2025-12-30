@@ -13,6 +13,9 @@ See the blog [Using FrankenPHP with DDEV](https://ddev.com/blog/using-frankenphp
 
 This add-on integrates FrankenPHP into your [DDEV](https://ddev.com/) project.
 
+> [!NOTE]
+> FrankenPHP support is available for PHP 8.2+ ZTS (Zend Thread Safety) versions only.
+
 ## Installation
 
 ```bash

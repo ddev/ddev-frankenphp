@@ -9,6 +9,15 @@ project_files:
 
 pre_install_actions:
   - |
+    #ddev-description:Checking PHP version compatibility
+    UNSUPPORTED_PHP_VERSIONS=("5.6" "7.0" "7.1" "7.2" "7.3" "7.4" "8.0" "8.1")
+    if [[ " ${UNSUPPORTED_PHP_VERSIONS[*]} " == *" ${DDEV_PHP_VERSION} "* ]]; then
+      echo "FrankenPHP is not supported for PHP version ${DDEV_PHP_VERSION}."
+      echo "Please upgrade your project to at least PHP 8.2 to use FrankenPHP."
+      echo "Run 'ddev config --php-version=8.2' to upgrade your PHP version."
+      exit 2
+    fi
+  - |
     #ddev-description:Removing old files
     files=(
       "${DDEV_APPROOT}/.ddev/commands/host/xdebug"
