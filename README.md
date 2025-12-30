@@ -53,7 +53,9 @@ For extensions not available as pre-packaged, use [PHP/PIE](https://packagist.or
 RUN (apt-get update || true) && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confold" \
         autoconf bison gcc libtool make pie-zts pkg-config re2c && \
-        pie-zts install asgrim/example-pie-extension
+    rm -rf /var/lib/apt/lists/* && \
+    pie-zts install asgrim/example-pie-extension
+
 ```
 
 And run `ddev restart`.
