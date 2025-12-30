@@ -32,7 +32,7 @@ setup() {
   export DDEV_NO_INSTRUMENTATION=true
   ddev delete -Oy "${PROJNAME}" >/dev/null 2>&1 || true
   cd "${TESTDIR}"
-  run ddev config --project-name="${PROJNAME}" --project-tld=ddev.site
+  run ddev config --project-name="${PROJNAME}" --project-tld=ddev.site --web-environment-add=BLACKFIRE_SERVER_ID=test_server_id,BLACKFIRE_SERVER_TOKEN=test_token
   assert_success
   run ddev start -y
   assert_success
