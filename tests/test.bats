@@ -50,6 +50,8 @@ health_checks() {
   run ddev php -v
   assert_success
   assert_output --partial "PHP ${FRANKENPHP_PHP_VERSION}"
+  refute_output --partial "Warning"
+  refute_output --partial "is already loaded"
 
   run ddev php --ini
   assert_success
@@ -134,9 +136,32 @@ health_checks() {
 
   run ddev php -m
   assert_success
-  assert_output --partial "pdo_mysql"
-  assert_output --partial "pdo_pgsql"
-  assert_output --partial "zip"
+  assert_line "apcu"
+  assert_line "bcmath"
+  assert_line "bz2"
+  assert_line "FFI"
+  assert_line "fileinfo"
+  assert_line "ftp"
+  assert_line "gd"
+  assert_line "gettext"
+  assert_line "imagick"
+  assert_line "intl"
+  assert_line "ldap"
+  assert_line "memcached"
+  assert_line "mysqli"
+  assert_line "pdo_mysql"
+  assert_line "pdo_pgsql"
+  assert_line "pgsql"
+  assert_line "redis"
+  assert_line "shmop"
+  assert_line "soap"
+  assert_line "sqlite3"
+  assert_line "sysvmsg"
+  assert_line "sysvsem"
+  assert_line "sysvshm"
+  assert_line "xsl"
+  assert_line "yaml"
+  assert_line "zip"
 
   if [[ "${FRANKENPHP_CUSTOM_EXTENSION}" == "true" ]]; then
     assert_output --partial "example_pie_extension"
