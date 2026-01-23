@@ -52,6 +52,8 @@ health_checks() {
   assert_output --partial "PHP ${FRANKENPHP_PHP_VERSION}"
   refute_output --partial "Warning"
   refute_output --partial "is already loaded"
+  refute_output --partial "cannot open shared object file"
+  refute_output --partial "in Unknown on line"
 
   run ddev php --ini
   assert_success
@@ -164,31 +166,28 @@ health_checks() {
   assert_line "zip"
 
   if [[ "${FRANKENPHP_CUSTOM_EXTENSION}" == "true" ]]; then
-    assert_output --partial "example_pie_extension"
+    assert_line "example_pie_extension"
   else
-    refute_output --partial "example_pie_extension"
+    refute_line "example_pie_extension"
   fi
 
-  run ddev xdebug on
-  assert_success
+  refute_output --partial "Warning"
+  refute_output --partial "is already loaded"
+  refute_output --partial "cannot open shared object file"
+  refute_output --partial "in Unknown on line"
 
-  run ddev php -m
-  assert_success
-  assert_output --partial "xdebug"
+  for extension in xdebug xhprof blackfire; do
+    run ddev "${extension}" on
+    assert_success
 
-  run ddev xhprof on
-  assert_success
-
-  run ddev php -m
-  assert_success
-  assert_output --partial "xhprof"
-
-  run ddev blackfire on
-  assert_success
-
-  run ddev php -m
-  assert_success
-  assert_output --partial "blackfire"
+    run ddev php -m
+    assert_success
+    assert_line "${extension}"
+    refute_output --partial "Warning"
+    refute_output --partial "is already loaded"
+    refute_output --partial "cannot open shared object file"
+    refute_output --partial "in Unknown on line"
+  done
 }
 
 teardown() {

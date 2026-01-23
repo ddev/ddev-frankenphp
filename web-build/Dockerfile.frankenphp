@@ -17,8 +17,26 @@ sed -i 's|/etc/php/${DDEV_PHP_VERSION}/fpm/conf.d/|/etc/php-zts/conf.d/|g' /star
 # Copy DDEV PHP module configurations to php-zts location
 cp /etc/php/${DDEV_PHP_VERSION}/mods-available/assert.ini /etc/php-zts/conf.d/20-assert.ini
 cp /etc/php/${DDEV_PHP_VERSION}/mods-available/blackfire.ini /etc/php-zts/conf.d/90-blackfire.ini
-cp /etc/php/${DDEV_PHP_VERSION}/mods-available/xdebug.ini /etc/php-zts/conf.d/15-xdebug.ini
-cp /etc/php/${DDEV_PHP_VERSION}/mods-available/xhprof.ini /etc/php-zts/conf.d/20-xhprof.ini
+
+# Append DDEV extension configurations to existing php-zts ini files
+for EXT_NAME in xdebug xhprof; do
+    # Find the source extension ini file in mods-available
+    EXT_SRC_INI=$(find "/etc/php/${DDEV_PHP_VERSION}/mods-available" -name "*${EXT_NAME}*.ini" -type f | head -n 1)
+    if [ -z "$EXT_SRC_INI" ]; then
+        echo "ERROR: ${EXT_NAME} ini file not found in /etc/php/${DDEV_PHP_VERSION}/mods-available" >&2
+        exit 1
+    fi
+
+    # Find the destination extension ini file in php-zts conf.d
+    EXT_ZTS_INI=$(find /etc/php-zts/conf.d -name "*${EXT_NAME}*.ini" -type f | head -n 1)
+    if [ -z "$EXT_ZTS_INI" ]; then
+        echo "ERROR: ${EXT_NAME} ini file not found in /etc/php-zts/conf.d" >&2
+        exit 1
+    fi
+
+    # Append config from mods-available, excluding extension loading lines
+    grep -v -E '^(zend_)?extension=' "$EXT_SRC_INI" >> "$EXT_ZTS_INI"
+done
 
 # Create symlinks for phpenmod and phpdismod to use php-zts versions
 ln -sf /usr/sbin/phpenmod-zts /usr/sbin/phpenmod
@@ -26,6 +44,8 @@ ln -sf /usr/sbin/phpdismod-zts /usr/sbin/phpdismod
 
 # Reconfigure blackfire-php if installed, to match the current PHP version
 if dpkg -s blackfire-php >/dev/null 2>&1; then
+    apt-get update || true
+    apt-get install -y --only-upgrade blackfire-php
     dpkg-reconfigure blackfire-php
 fi
 
