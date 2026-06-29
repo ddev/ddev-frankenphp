@@ -9,7 +9,8 @@ set -eu -o pipefail
 cp /etc/php/${DDEV_PHP_VERSION}/fpm/php.ini /etc/php-zts/php.ini
 update-alternatives --install /usr/bin/php php /usr/bin/php-zts 50
 update-alternatives --set php /usr/bin/php-zts
-ln -sf /usr/bin/php-zts /usr/bin/php${DDEV_PHP_VERSION}
+# Update the versioned php binary to point to php-zts
+ln -sf /usr/bin/php /usr/bin/php${DDEV_PHP_VERSION}
 
 # Patch start.sh to use php-zts paths
 sed -i 's|/usr/bin/php${DDEV_PHP_VERSION}|/usr/bin/php-zts|g' /start.sh
