@@ -50,6 +50,16 @@ health_checks() {
   run ddev php -v
   assert_success
   assert_output --partial "PHP ${FRANKENPHP_PHP_VERSION}"
+  assert_output --partial "ZTS"
+  refute_output --partial "Warning"
+  refute_output --partial "is already loaded"
+  refute_output --partial "cannot open shared object file"
+  refute_output --partial "in Unknown on line"
+
+  run ddev exec "php${FRANKENPHP_PHP_VERSION}" -v
+  assert_success
+  assert_output --partial "PHP ${FRANKENPHP_PHP_VERSION}"
+  assert_output --partial "ZTS"
   refute_output --partial "Warning"
   refute_output --partial "is already loaded"
   refute_output --partial "cannot open shared object file"
