@@ -69,5 +69,5 @@ for script_file in "${scripts[@]}"; do
 done
 
 # Ensure write permissions for all users on php-zts directories
-chmod -fR ugo+w /etc/php-zts /var/lib/php-zts
+chmod -fR ugo+rwX /etc/php-zts /var/lib/php-zts
 EOF

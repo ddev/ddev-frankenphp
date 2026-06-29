@@ -40,6 +40,9 @@ setup() {
   cp "${DIR}"/tests/testdata/.ddev/php/php.ini .ddev/php/php.ini
   assert_file_exist .ddev/php/php.ini
 
+  cp "${DIR}"/tests/testdata/session-test.php session-test.php
+  assert_file_exist session-test.php
+
   export FRANKENPHP_PHP_VERSION=8.4
   export FRANKENPHP_WORKER=false
   export FRANKENPHP_CUSTOM_EXTENSION=false
@@ -71,6 +74,12 @@ health_checks() {
 
   run ddev php -r 'assert(false);'
   assert_failure
+
+  run ddev php /var/www/html/session-test.php
+  assert_success
+  assert_output --partial "SESSION_OK"
+  assert_output --partial "/var/lib/php-zts/session"
+  refute_output --partial "Permission denied"
 
   run curl -sfI http://${PROJNAME}.ddev.site
   assert_success
