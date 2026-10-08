@@ -32,11 +32,10 @@ jobs:
       matrix:
         os: [ubuntu-latest, ubuntu-26.04-arm]
         ddev_version: [stable, HEAD]
-        bats_tag: [
-          "php82-php83",
-          "php84",
-          "php85",
-        ]
+        # The "release" tests only run on schedule and workflow_dispatch.
+        bats_tag: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+          && fromJSON('["php82-php83", "php84", "php85", "release"]')
+          || fromJSON('["php82-php83", "php84", "php85"]') }}
       fail-fast: false
 
     runs-on: ${{ matrix.os }}
