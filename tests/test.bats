@@ -43,23 +43,28 @@ setup() {
   cp "${DIR}"/tests/testdata/session-test.php session-test.php
   assert_file_exist session-test.php
 
-  export FRANKENPHP_PHP_VERSION=8.4
+  cp "${DIR}"/tests/testdata/index-no-worker.php index.php
+  assert_file_exist index.php
+
   export FRANKENPHP_WORKER=false
   export FRANKENPHP_CUSTOM_EXTENSION=false
   export FRANKENPHP_HOST_PORTS=false
 }
 
 health_checks() {
+  # Expected PHP version, e.g. "8.4"
+  local php_version="$1"
+
   run ddev php -v
   assert_success
-  assert_output --partial "PHP ${FRANKENPHP_PHP_VERSION}"
+  assert_output --partial "PHP ${php_version}"
   assert_output --partial "ZTS"
   refute_output --partial "Warning"
   refute_output --partial "is already loaded"
   refute_output --partial "cannot open shared object file"
   refute_output --partial "in Unknown on line"
 
-  run ddev exec "readlink /usr/bin/php${FRANKENPHP_PHP_VERSION}"
+  run ddev exec "readlink /usr/bin/php${php_version}"
   assert_success
   assert_output "/usr/bin/php"
 
@@ -204,6 +209,21 @@ health_checks() {
   done
 }
 
+# Installs the add-on from the directory for the given PHP version and runs health checks.
+install_from_directory() {
+  local php_version="$1"
+
+  run ddev config --php-version="${php_version}"
+  assert_success
+
+  echo "# ddev add-on get ${DIR} with PHP ${php_version} in $(pwd)" >&3
+  run ddev add-on get "${DIR}"
+  assert_success
+  run ddev restart -y
+  assert_success
+  health_checks "${php_version}"
+}
+
 teardown() {
   set -eu -o pipefail
   ddev delete -Oy "${PROJNAME}" >/dev/null 2>&1
@@ -217,90 +237,27 @@ teardown() {
 }
 
 # bats test_tags=php82-php83
-@test "php82" {
+@test "install from directory PHP 8.2" {
   set -eu -o pipefail
-
-  export FRANKENPHP_PHP_VERSION=8.2
-
-  cp "${DIR}"/tests/testdata/index-no-worker.php index.php
-  assert_file_exist index.php
-
-  run ddev config --php-version=${FRANKENPHP_PHP_VERSION}
-  assert_success
-
-  echo "# ddev add-on get ${DIR} with project ${PROJNAME} in $(pwd)" >&3
-  run ddev add-on get "${DIR}"
-  assert_success
-  run ddev restart -y
-  assert_success
-  health_checks
+  install_from_directory 8.2
 }
 
 # bats test_tags=php82-php83
-@test "php83" {
+@test "install from directory PHP 8.3" {
   set -eu -o pipefail
-
-  export FRANKENPHP_PHP_VERSION=8.3
-
-  cp "${DIR}"/tests/testdata/index-no-worker.php index.php
-  assert_file_exist index.php
-
-  run ddev config --php-version=${FRANKENPHP_PHP_VERSION}
-  assert_success
-
-  echo "# ddev add-on get ${DIR} with project ${PROJNAME} in $(pwd)" >&3
-  run ddev add-on get "${DIR}"
-  assert_success
-  run ddev restart -y
-  assert_success
-  health_checks
+  install_from_directory 8.3
 }
 
 # bats test_tags=php84
-@test "php84" {
+@test "install from directory PHP 8.4" {
   set -eu -o pipefail
-
-  export FRANKENPHP_PHP_VERSION=8.4
-
-  cp "${DIR}"/tests/testdata/index-no-worker.php index.php
-  assert_file_exist index.php
-
-  run ddev config --php-version=${FRANKENPHP_PHP_VERSION}
-  assert_success
-
-  echo "# ddev add-on get ${DIR} with project ${PROJNAME} in $(pwd)" >&3
-  run ddev add-on get "${DIR}"
-  assert_success
-  run ddev restart -y
-  assert_success
-  health_checks
-}
-
-# bats test_tags=php85
-@test "php85" {
-  set -eu -o pipefail
-
-  export FRANKENPHP_PHP_VERSION=8.5
-
-  cp "${DIR}"/tests/testdata/index-no-worker.php index.php
-  assert_file_exist index.php
-
-  run ddev config --php-version=${FRANKENPHP_PHP_VERSION}
-  assert_success
-
-  echo "# ddev add-on get ${DIR} with project ${PROJNAME} in $(pwd)" >&3
-  run ddev add-on get "${DIR}"
-  assert_success
-  run ddev restart -y
-  assert_success
-  health_checks
+  install_from_directory 8.4
 }
 
 # bats test_tags=php84
-@test "php84-worker" {
+@test "install from directory PHP 8.4 with worker" {
   set -eu -o pipefail
 
-  export FRANKENPHP_PHP_VERSION=8.4
   export FRANKENPHP_WORKER=true
 
   cp "${DIR}"/tests/testdata/index-worker.php index.php
@@ -309,44 +266,46 @@ teardown() {
   cp "${DIR}"/tests/testdata/.ddev/docker-compose.frankenphp_extra.yaml .ddev/docker-compose.frankenphp_extra.yaml
   assert_file_exist .ddev/docker-compose.frankenphp_extra.yaml
 
-  run ddev config --php-version=${FRANKENPHP_PHP_VERSION}
-  assert_success
-
-  echo "# ddev add-on get ${DIR} with project ${PROJNAME} in $(pwd)" >&3
-  run ddev add-on get "${DIR}"
-  assert_success
-  run ddev restart -y
-  assert_success
-  health_checks
+  install_from_directory 8.4
 }
 
 # bats test_tags=php85
-@test "php85-docroot-extension-port" {
+@test "install from directory PHP 8.5" {
+  set -eu -o pipefail
+  install_from_directory 8.5
+}
+
+# bats test_tags=php85
+@test "install from directory PHP 8.5 with docroot, custom extension and host ports" {
   set -eu -o pipefail
 
-  export FRANKENPHP_PHP_VERSION=8.5
   export FRANKENPHP_CUSTOM_EXTENSION=true
   export FRANKENPHP_HOST_PORTS=true
 
-  run ddev config --docroot=public
-  assert_success
-
-  run ddev config --host-webserver-port=8080 --host-https-port=8443
+  run ddev config --docroot=public --host-webserver-port=8080 --host-https-port=8443
   assert_success
 
   cp "${DIR}"/tests/testdata/.ddev/web-build/Dockerfile.frankenphp_extra .ddev/web-build/Dockerfile.frankenphp_extra
   assert_file_exist .ddev/web-build/Dockerfile.frankenphp_extra
 
-  run ddev config --php-version=${FRANKENPHP_PHP_VERSION}
-  assert_success
-
+  mkdir -p public
   cp "${DIR}"/tests/testdata/index-no-worker.php public/index.php
   assert_file_exist public/index.php
 
-  echo "# ddev add-on get ${DIR} with project ${PROJNAME} in $(pwd)" >&3
-  run ddev add-on get "${DIR}"
+  install_from_directory 8.5
+}
+
+# bats test_tags=release
+@test "install from release" {
+  set -eu -o pipefail
+
+  run ddev config --php-version=8.4
+  assert_success
+
+  echo "# ddev add-on get ${GITHUB_REPO} with project ${PROJNAME} in $(pwd)" >&3
+  run ddev add-on get "${GITHUB_REPO}"
   assert_success
   run ddev restart -y
   assert_success
-  health_checks
+  health_checks 8.4
 }
