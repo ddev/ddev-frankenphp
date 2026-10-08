@@ -40,18 +40,69 @@ setup() {
   cp "${DIR}"/tests/testdata/.ddev/php/php.ini .ddev/php/php.ini
   assert_file_exist .ddev/php/php.ini
 
-  cp "${DIR}"/tests/testdata/session-test.php session-test.php
-  assert_file_exist session-test.php
-
-  cp "${DIR}"/tests/testdata/index-no-worker.php index.php
-  assert_file_exist index.php
-
-  cp "${DIR}"/tests/testdata/app-error.php app-error.php
+  cp "${DIR}"/tests/testdata/{app-error,index,server-info,session}.php .
   assert_file_exist app-error.php
+  assert_file_exist index.php
+  assert_file_exist server-info.php
+  assert_file_exist session.php
 
   export FRANKENPHP_WORKER=false
   export FRANKENPHP_CUSTOM_EXTENSION=false
   export FRANKENPHP_HOST_PORTS=false
+}
+
+# Fails on PHP startup warnings, e.g. from a duplicate or missing extension
+refute_php_warnings() {
+  refute_output --partial "Warning"
+  refute_output --partial "is already loaded"
+  refute_output --partial "cannot open shared object file"
+  refute_output --partial "in Unknown on line"
+}
+
+# Checks the status line and FrankenPHP headers of the URL.
+# Output is lowercased, so the same checks work for HTTP/1.1 and HTTP/2.
+assert_frankenphp_headers() {
+  local url="$1"
+  # e.g. "http/2 200"
+  local status_line="$2"
+
+  run bash -o pipefail -c "curl -sfI '${url}' | tr '[:upper:]' '[:lower:]'"
+  assert_success
+  assert_output --partial "${status_line}"
+  assert_output --regexp "server: (caddy|frankenphp)"
+
+  if [[ "${FRANKENPHP_WORKER}" == "true" ]]; then
+    assert_output --partial "x-request-count"
+    assert_output --partial "x-worker-uptime"
+  else
+    refute_output --partial "x-request-count"
+    refute_output --partial "x-worker-uptime"
+  fi
+}
+
+# Checks the request and PHP settings as FrankenPHP sees them
+assert_server_info() {
+  local url="$1"
+  local request_scheme="$2"
+  local server_port="$3"
+
+  run curl -sf "${url}/server-info.php"
+  assert_success
+  assert_line "sapi=frankenphp"
+  assert_line "request_scheme=${request_scheme}"
+  assert_line "server_port=${server_port}"
+  if [[ "${request_scheme}" == "https" ]]; then
+    assert_line "https=on"
+  else
+    assert_line "https="
+  fi
+  assert_line "timezone=Europe/London"
+  assert_line "highlight.comment=#123456"
+
+  # Set with php_ini in FRANKENPHP_CONFIG from docker-compose.frankenphp_extra.yaml
+  if [[ "${FRANKENPHP_WORKER}" == "true" ]]; then
+    assert_line "memory_limit=256M"
+  fi
 }
 
 health_checks() {
@@ -62,10 +113,7 @@ health_checks() {
   assert_success
   assert_output --partial "PHP ${php_version}"
   assert_output --partial "ZTS"
-  refute_output --partial "Warning"
-  refute_output --partial "is already loaded"
-  refute_output --partial "cannot open shared object file"
-  refute_output --partial "in Unknown on line"
+  refute_php_warnings
 
   run ddev exec "readlink /usr/bin/php${php_version}"
   assert_success
@@ -87,79 +135,51 @@ health_checks() {
   run ddev php -r 'assert(false);'
   assert_failure
 
-  run ddev php /var/www/html/session-test.php
+  run ddev php /var/www/html/session.php
   assert_success
   assert_output --partial "SESSION_OK"
   assert_output --partial "/var/lib/php-zts/session"
   refute_output --partial "Permission denied"
 
-  run curl -sfI http://${PROJNAME}.ddev.site
+  # FrankenPHP must start without Caddyfile warnings
+  run ddev logs -s web
   assert_success
-  assert_output --partial "HTTP/1.1 200"
-  assert_output --regexp "Server: (Caddy|FrankenPHP)"
+  refute_output --partial "is not formatted"
 
-  if [[ "${FRANKENPHP_WORKER}" == "true" ]]; then
-    assert_output --partial "X-Request-Count"
-    assert_output --partial "X-Worker-Uptime"
-  else
-    refute_output --partial "X-Request-Count"
-    refute_output --partial "X-Worker-Uptime"
-  fi
+  assert_frankenphp_headers "http://${PROJNAME}.ddev.site" "http/1.1 200"
+  assert_frankenphp_headers "https://${PROJNAME}.ddev.site" "http/2 200"
 
-  run curl -sfI https://${PROJNAME}.ddev.site
-  assert_success
-  assert_output --partial "HTTP/2 200"
-  assert_output --regexp "server: (Caddy|FrankenPHP)"
-
-  if [[ "${FRANKENPHP_WORKER}" == "true" ]]; then
-    assert_output --partial "x-request-count"
-    assert_output --partial "x-worker-uptime"
-  else
-    refute_output --partial "x-request-count"
-    refute_output --partial "x-worker-uptime"
-  fi
+  assert_server_info "http://${PROJNAME}.ddev.site" http 80
+  assert_server_info "https://${PROJNAME}.ddev.site" https 443
 
   if [[ "${FRANKENPHP_HOST_PORTS}" == "true" ]]; then
-    run curl -sfI http://127.0.0.1:8080
-    assert_success
-    assert_output --partial "HTTP/1.1 200"
-    assert_output --regexp "Server: (Caddy|FrankenPHP)"
+    assert_frankenphp_headers "http://127.0.0.1:8080" "http/1.1 200"
+    assert_frankenphp_headers "https://127.0.0.1:8443" "http/2 200"
 
-    if [[ "${FRANKENPHP_WORKER}" == "true" ]]; then
-      assert_output --partial "X-Request-Count"
-      assert_output --partial "X-Worker-Uptime"
-    else
-      refute_output --partial "X-Request-Count"
-      refute_output --partial "X-Worker-Uptime"
-    fi
+    # Without the router, the port comes from the Host header
+    assert_server_info "http://127.0.0.1:8080" http 8080
+    assert_server_info "https://127.0.0.1:8443" https 8443
+  fi
 
-    run curl -sfI https://127.0.0.1:8443
-    assert_success
-    assert_output --partial "HTTP/2 200"
-    assert_output --regexp "server: (Caddy|FrankenPHP)"
-    if [[ "${FRANKENPHP_WORKER}" == "true" ]]; then
-      assert_output --partial "x-request-count"
-      assert_output --partial "x-worker-uptime"
-    else
-      refute_output --partial "x-request-count"
-      refute_output --partial "x-worker-uptime"
-    fi
+  local index_output="FrankenPHP page without worker"
+  if [[ "${FRANKENPHP_WORKER}" == "true" ]]; then
+    index_output="FrankenPHP page with worker"
   fi
 
   run curl -sf http://${PROJNAME}.ddev.site
   assert_success
-  if [[ "${FRANKENPHP_WORKER}" == "true" ]]; then
-    assert_output --partial "FrankenPHP Worker Demo"
-  else
-    assert_output "FrankenPHP page without worker"
-  fi
+  assert_output "${index_output}"
 
   run curl -sf https://${PROJNAME}.ddev.site
   assert_success
+  assert_output "${index_output}"
+
   if [[ "${FRANKENPHP_WORKER}" == "true" ]]; then
-    assert_output --partial "FrankenPHP Worker Demo"
-  else
-    assert_output "FrankenPHP page without worker"
+    # The worker keeps its state, so the request count grows
+    local first_count second_count
+    first_count=$(curl -sfI https://${PROJNAME}.ddev.site | sed -n 's/^x-request-count: \([0-9]*\).*/\1/p')
+    second_count=$(curl -sfI https://${PROJNAME}.ddev.site | sed -n 's/^x-request-count: \([0-9]*\).*/\1/p')
+    assert [ "${second_count}" -gt "${first_count}" ]
   fi
 
   # 403 and 404 returned by PHP pass through without the DDEV error pages
@@ -194,46 +214,55 @@ health_checks() {
   run ddev exec 'cd "/var/www/html/${DDEV_DOCROOT}" && mv index.php.bak index.php && rm -f forbidden.txt'
   assert_success
 
+  local extensions=(
+    apcu
+    bcmath
+    bz2
+    FFI
+    fileinfo
+    ftp
+    gd
+    gettext
+    imagick
+    intl
+    ldap
+    memcached
+    mysqli
+    pdo_mysql
+    pdo_pgsql
+    pgsql
+    redis
+    shmop
+    soap
+    sqlite3
+    sysvmsg
+    sysvsem
+    sysvshm
+    xsl
+    yaml
+    zip
+  )
+  if [[ "${FRANKENPHP_CUSTOM_EXTENSION}" == "true" ]]; then
+    extensions+=(example_pie_extension)
+  fi
+
   run ddev php -m
   assert_success
-  assert_line "apcu"
-  assert_line "bcmath"
-  assert_line "bz2"
-  assert_line "FFI"
-  assert_line "fileinfo"
-  assert_line "ftp"
-  assert_line "gd"
-  assert_line "gettext"
-  assert_line "imagick"
-  assert_line "intl"
-  assert_line "ldap"
-  assert_line "memcached"
-  assert_line "mysqli"
-  assert_line "pdo_mysql"
-  assert_line "pdo_pgsql"
-  assert_line "pgsql"
-  assert_line "redis"
-  assert_line "shmop"
-  assert_line "soap"
-  assert_line "sqlite3"
-  assert_line "sysvmsg"
-  assert_line "sysvsem"
-  assert_line "sysvshm"
-  assert_line "xsl"
-  assert_line "yaml"
-  assert_line "zip"
-
-  if [[ "${FRANKENPHP_CUSTOM_EXTENSION}" == "true" ]]; then
-    assert_line "example_pie_extension"
-  else
+  refute_php_warnings
+  for extension in "${extensions[@]}"; do
+    assert_line "${extension}"
+  done
+  if [[ "${FRANKENPHP_CUSTOM_EXTENSION}" != "true" ]]; then
     refute_line "example_pie_extension"
   fi
 
-  refute_output --partial "Warning"
-  refute_output --partial "is already loaded"
-  refute_output --partial "cannot open shared object file"
-  refute_output --partial "in Unknown on line"
+  run curl -sf https://${PROJNAME}.ddev.site/server-info.php
+  assert_success
+  for extension in "${extensions[@]}"; do
+    assert_line "extension=${extension}"
+  done
 
+  # The extensions must be enabled both in the CLI and in FrankenPHP
   for extension in xdebug xhprof blackfire; do
     run ddev "${extension}" on
     assert_success
@@ -241,10 +270,11 @@ health_checks() {
     run ddev php -m
     assert_success
     assert_line "${extension}"
-    refute_output --partial "Warning"
-    refute_output --partial "is already loaded"
-    refute_output --partial "cannot open shared object file"
-    refute_output --partial "in Unknown on line"
+    refute_php_warnings
+
+    run curl -sf https://${PROJNAME}.ddev.site/server-info.php
+    assert_success
+    assert_line "extension=${extension}"
   done
 }
 
@@ -287,6 +317,24 @@ teardown() {
   install_from_directory 8.3
 }
 
+# bats test_tags=php82-php83
+@test "install fails with unsupported PHP version or outdated config" {
+  set -eu -o pipefail
+
+  run ddev config --php-version=8.1
+  assert_success
+  run ddev add-on get "${DIR}"
+  assert_failure
+  assert_output --partial "FrankenPHP is not supported for PHP version 8.1"
+
+  run ddev config --php-version=8.4
+  assert_success
+  echo "FRANKENPHP_DEBIAN_CODENAME=bookworm" > .ddev/.env.web
+  run ddev add-on get "${DIR}"
+  assert_failure
+  assert_output --partial "You have FRANKENPHP_DEBIAN_CODENAME set"
+}
+
 # bats test_tags=php84
 @test "install from directory PHP 8.4" {
   set -eu -o pipefail
@@ -299,7 +347,7 @@ teardown() {
 
   export FRANKENPHP_WORKER=true
 
-  cp "${DIR}"/tests/testdata/index-worker.php index.php
+  cp "${DIR}"/tests/testdata/worker.php index.php
   assert_file_exist index.php
 
   cp "${DIR}"/tests/testdata/.ddev/docker-compose.frankenphp_extra.yaml .ddev/docker-compose.frankenphp_extra.yaml
@@ -328,11 +376,10 @@ teardown() {
   assert_file_exist .ddev/web-build/Dockerfile.frankenphp_extra
 
   mkdir -p public
-  cp "${DIR}"/tests/testdata/index-no-worker.php public/index.php
-  assert_file_exist public/index.php
-
-  cp "${DIR}"/tests/testdata/app-error.php public/app-error.php
+  mv app-error.php index.php server-info.php public/
   assert_file_exist public/app-error.php
+  assert_file_exist public/index.php
+  assert_file_exist public/server-info.php
 
   install_from_directory 8.5
 }
