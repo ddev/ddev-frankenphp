@@ -15,6 +15,7 @@ ln -sf /usr/bin/php /usr/bin/php${DDEV_PHP_VERSION}
 # Patch start.sh to use php-zts paths
 sed -i 's|/usr/bin/php${DDEV_PHP_VERSION}|/usr/bin/php-zts|g' /start.sh
 sed -i 's|/etc/php/${DDEV_PHP_VERSION}/fpm/conf.d/|/etc/php-zts/conf.d/|g' /start.sh
+sed -i 's|find /etc/php -name php.ini|find /etc/php /etc/php-zts -name php.ini|g' /start.sh
 
 # Copy DDEV PHP module configurations to php-zts location
 cp /etc/php/${DDEV_PHP_VERSION}/mods-available/assert.ini /etc/php-zts/conf.d/20-assert.ini
