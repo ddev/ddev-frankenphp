@@ -5,7 +5,6 @@
 #
 # https://frankenphp.dev/docs/config
 # https://caddyserver.com/docs/caddyfile
-
 {
 	skip_install_trust
 
@@ -26,6 +25,20 @@
 	root {$DDEV_APPROOT}/{$DDEV_DOCROOT}
 	encode zstd br gzip
 	{$CADDY_SERVER_EXTRA_DIRECTIVES}
+
+	# DDEV error pages (v1.25.4+) for 403/404 from Caddy itself, PHP responses pass through
+	handle_errors 403 404 {
+		@ddevErrorPage file {
+			root /usr/local/share
+			try_files /ddev-webserver-{err.status_code}-error.html
+		}
+		handle @ddevErrorPage {
+			root * /usr/local/share
+			rewrite * {file_match.relative}
+			header X-Ddev-{err.status_code}-Source "ddev-webserver (frankenphp)"
+			file_server
+		}
+	}
 }
 
 :80 {

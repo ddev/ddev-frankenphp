@@ -46,6 +46,9 @@ setup() {
   cp "${DIR}"/tests/testdata/index-no-worker.php index.php
   assert_file_exist index.php
 
+  cp "${DIR}"/tests/testdata/app-error.php app-error.php
+  assert_file_exist app-error.php
+
   export FRANKENPHP_WORKER=false
   export FRANKENPHP_CUSTOM_EXTENSION=false
   export FRANKENPHP_HOST_PORTS=false
@@ -158,6 +161,38 @@ health_checks() {
   else
     assert_output "FrankenPHP page without worker"
   fi
+
+  # 403 and 404 returned by PHP pass through without the DDEV error pages
+  run curl -s -D - "http://${PROJNAME}.ddev.site/app-error.php?status=404"
+  assert_success
+  assert_output --partial "HTTP/1.1 404"
+  assert_output --partial "App error page"
+  refute_output --partial "X-Ddev-404-Source"
+
+  run curl -s -D - "https://${PROJNAME}.ddev.site/app-error.php?status=403"
+  assert_success
+  assert_output --partial "HTTP/2 403"
+  assert_output --partial "App error page"
+  refute_output --partial "x-ddev-403-source"
+
+  # Without index.php, Caddy returns its own 403 and 404, which show the DDEV error pages
+  run ddev exec 'cd "/var/www/html/${DDEV_DOCROOT}" && mv index.php index.php.bak && echo forbidden > forbidden.txt && chmod 000 forbidden.txt'
+  assert_success
+
+  run curl -s -D - http://${PROJNAME}.ddev.site/missing.html
+  assert_success
+  assert_output --partial "HTTP/1.1 404"
+  assert_output --partial "X-Ddev-404-Source: ddev-webserver (frankenphp)"
+  assert_output --partial "<title>404: Not Found</title>"
+
+  run curl -s -D - https://${PROJNAME}.ddev.site/forbidden.txt
+  assert_success
+  assert_output --partial "HTTP/2 403"
+  assert_output --partial "x-ddev-403-source: ddev-webserver (frankenphp)"
+  assert_output --partial "<title>403: Forbidden</title>"
+
+  run ddev exec 'cd "/var/www/html/${DDEV_DOCROOT}" && mv index.php.bak index.php && rm -f forbidden.txt'
+  assert_success
 
   run ddev php -m
   assert_success
@@ -295,6 +330,9 @@ teardown() {
   mkdir -p public
   cp "${DIR}"/tests/testdata/index-no-worker.php public/index.php
   assert_file_exist public/index.php
+
+  cp "${DIR}"/tests/testdata/app-error.php public/app-error.php
+  assert_file_exist public/app-error.php
 
   install_from_directory 8.5
 }
