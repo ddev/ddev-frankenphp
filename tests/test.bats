@@ -32,7 +32,7 @@ setup() {
   export DDEV_NO_INSTRUMENTATION=true
   ddev delete -Oy "${PROJNAME}" >/dev/null 2>&1 || true
   cd "${TESTDIR}"
-  run ddev config --project-name="${PROJNAME}" --project-tld=ddev.site --web-environment-add=BLACKFIRE_SERVER_ID=test_server_id,BLACKFIRE_SERVER_TOKEN=test_token
+  run ddev config --project-name="${PROJNAME}" --project-tld=ddev.site --timezone=Europe/London --web-environment-add=BLACKFIRE_SERVER_ID=test_server_id,BLACKFIRE_SERVER_TOKEN=test_token
   assert_success
   run ddev start -y
   assert_success
@@ -73,9 +73,13 @@ health_checks() {
   assert_output --partial "/etc/php-zts/php.ini"
   assert_output --partial "/etc/php-zts/conf.d/20-assert.ini"
 
-  run ddev php -i
+  run ddev php -r 'echo date_default_timezone_get();'
   assert_success
-  assert_output --partial "date.timezone => Europe/London"
+  assert_output "Europe/London"
+
+  run ddev php -r 'echo ini_get("highlight.comment");'
+  assert_success
+  assert_output "#123456"
 
   run ddev php -r 'assert(false);'
   assert_failure
