@@ -216,7 +216,7 @@ teardown() {
   fi
 }
 
-# bats test_tags=php82
+# bats test_tags=php82-php83
 @test "php82" {
   set -eu -o pipefail
 
@@ -236,7 +236,7 @@ teardown() {
   health_checks
 }
 
-# bats test_tags=php83
+# bats test_tags=php82-php83
 @test "php83" {
   set -eu -o pipefail
 
@@ -296,7 +296,7 @@ teardown() {
   health_checks
 }
 
-# bats test_tags=php84-worker
+# bats test_tags=php84
 @test "php84-worker" {
   set -eu -o pipefail
 
@@ -320,11 +320,11 @@ teardown() {
   health_checks
 }
 
-# bats test_tags=php84-docroot-extension-port
-@test "docroot=php84-docroot-extension-port" {
+# bats test_tags=php85
+@test "php85-docroot-extension-port" {
   set -eu -o pipefail
 
-  export FRANKENPHP_PHP_VERSION=8.4
+  export FRANKENPHP_PHP_VERSION=8.5
   export FRANKENPHP_CUSTOM_EXTENSION=true
   export FRANKENPHP_HOST_PORTS=true
 
