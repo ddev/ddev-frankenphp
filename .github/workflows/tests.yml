@@ -33,12 +33,9 @@ jobs:
         os: [ubuntu-latest, ubuntu-26.04-arm]
         ddev_version: [stable, HEAD]
         bats_tag: [
-          "php82",
-          "php83",
+          "php82-php83",
           "php84",
           "php85",
-          "php84-worker",
-          "php84-docroot-extension-port",
         ]
       fail-fast: false
 
