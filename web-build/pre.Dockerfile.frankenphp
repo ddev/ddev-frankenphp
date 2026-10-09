@@ -1,3 +1,16 @@
 #ddev-generated
 # Add PHP ZTS repository https://debs.henderkes.com/
-RUN curl -fsSL https://files.henderkes.com/install.sh | sh -s "${DDEV_PHP_VERSION}"
+RUN <<EOF
+set -eu -o pipefail
+
+PHP_ZTS_VERSION="${DDEV_PHP_VERSION//./}"
+mkdir -p /etc/apt/keyrings
+curl -fsSL "https://pkg.henderkes.com/api/packages/${PHP_ZTS_VERSION}/debian/repository.key" -o /etc/apt/keyrings/php-zts.asc
+cat > /etc/apt/sources.list.d/php-zts.sources <<SOURCES
+Types: deb
+URIs: https://pkg.henderkes.com/api/packages/${PHP_ZTS_VERSION}/debian
+Suites: php-zts
+Components: main
+Signed-By: /etc/apt/keyrings/php-zts.asc
+SOURCES
+EOF

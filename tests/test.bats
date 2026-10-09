@@ -246,10 +246,17 @@ health_checks() {
     extensions+=(example_pie_extension)
   fi
 
+  local excluded_extensions=()
+  # TODO: Remove when these extensions work with PHP 8.6
+  if [[ "${php_version}" == "8.6" ]]; then
+    excluded_extensions=(memcached redis xdebug blackfire)
+  fi
+
   run ddev php -m
   assert_success
   refute_php_warnings
   for extension in "${extensions[@]}"; do
+    [[ " ${excluded_extensions[*]} " == *" ${extension} "* ]] && continue
     assert_line "${extension}"
   done
   if [[ "${FRANKENPHP_CUSTOM_EXTENSION}" != "true" ]]; then
@@ -259,11 +266,13 @@ health_checks() {
   run curl -sf https://${PROJNAME}.ddev.site/server-info.php
   assert_success
   for extension in "${extensions[@]}"; do
+    [[ " ${excluded_extensions[*]} " == *" ${extension} "* ]] && continue
     assert_line "extension=${extension}"
   done
 
   # The extensions must be enabled both in the CLI and in FrankenPHP
   for extension in xdebug xhprof blackfire; do
+    [[ " ${excluded_extensions[*]} " == *" ${extension} "* ]] && continue
     run ddev "${extension}" on
     assert_success
 
@@ -382,6 +391,17 @@ teardown() {
   assert_file_exist public/server-info.php
 
   install_from_directory 8.5
+}
+
+# bats test_tags=php86
+@test "install from directory PHP 8.6" {
+  set -eu -o pipefail
+
+  if [[ "$(ddev --version)" == "ddev version v1.25.4" ]]; then
+    skip "PHP 8.6 is not supported in DDEV v1.25.4"
+  fi
+
+  install_from_directory 8.6
 }
 
 # bats test_tags=release
