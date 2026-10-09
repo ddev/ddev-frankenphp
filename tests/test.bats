@@ -397,6 +397,7 @@ teardown() {
 @test "install from directory PHP 8.6" {
   set -eu -o pipefail
 
+  # TODO: Remove after the next DDEV release
   if [[ "$(ddev --version)" == "ddev version v1.25.4" ]]; then
     skip "PHP 8.6 is not supported in DDEV v1.25.4"
   fi
