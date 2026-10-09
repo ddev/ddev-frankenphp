@@ -249,7 +249,7 @@ health_checks() {
   local excluded_extensions=()
   # TODO: Remove when these extensions work with PHP 8.6
   if [[ "${php_version}" == "8.6" ]]; then
-    excluded_extensions=(memcached redis xdebug blackfire)
+    excluded_extensions=(memcached redis blackfire)
   fi
 
   run ddev php -m
