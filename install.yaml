@@ -57,4 +57,14 @@ pre_install_actions:
       exit 2
     fi
 
+post_install_actions:
+  - |
+    #ddev-description:Removing PHP extensions not available for PHP 8.6
+    # TODO: Remove when memcached and redis are available for PHP 8.6
+    config_file="${DDEV_APPROOT}/.ddev/config.frankenphp.yaml"
+    if [ "${DDEV_PHP_VERSION}" = "8.6" ] && grep -q '#ddev-generated' "${config_file}"; then
+      sed -i.bak '/php-zts-memcached/d; /php-zts-redis/d' "${config_file}"
+      rm -f "${config_file}.bak"
+    fi
+
 ddev_version_constraint: '>= v1.24.10'
