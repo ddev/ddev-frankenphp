@@ -211,6 +211,12 @@ health_checks() {
   assert_output --partial "x-ddev-403-source: ddev-webserver (frankenphp)"
   assert_output --partial "<title>403: Forbidden</title>"
 
+  run curl -s -D - https://${PROJNAME}.ddev.site/missing.php
+  assert_success
+  assert_output --partial "HTTP/2 404"
+  assert_output --partial "x-ddev-404-source: ddev-webserver (frankenphp)"
+  assert_output --partial "<title>404: Not Found</title>"
+
   run ddev exec 'cd "/var/www/html/${DDEV_DOCROOT}" && mv index.php.bak index.php && rm -f forbidden.txt'
   assert_success
 

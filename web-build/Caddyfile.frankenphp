@@ -26,6 +26,22 @@
 	encode zstd br gzip
 	{$CADDY_SERVER_EXTRA_DIRECTIVES}
 
+	# Without index.php, serve files directly, so Caddy's 403 and 404 show the DDEV error pages.
+	# Caddy v2.11.8+ would send these requests to index.php even when it doesn't exist.
+	@noIndexFile {
+		not file index.php
+		not path *.php *.php/*
+	}
+	handle @noIndexFile {
+		file_server
+	}
+	@noIndexMissingScript {
+		not file index.php
+		path *.php *.php/*
+		not file {path}
+	}
+	error @noIndexMissingScript 404
+
 	# DDEV error pages (v1.25.4+) for 403/404 from Caddy itself, PHP responses pass through
 	handle_errors 403 404 {
 		@ddevErrorPage file {
