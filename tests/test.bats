@@ -224,6 +224,7 @@ health_checks() {
     apcu
     bcmath
     bz2
+    curl
     FFI
     fileinfo
     ftp

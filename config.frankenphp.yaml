@@ -16,7 +16,9 @@ webimage_extra_packages:
   - php-zts-bcmath
   - php-zts-bz2
   - php-zts-cli
+  - php-zts-curl
   - php-zts-ffi
+  - php-zts-fileinfo
   - php-zts-ftp
   - php-zts-gd
   - php-zts-gettext
